@@ -13,9 +13,12 @@ import com.itheima.reggie.service.DishService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +40,9 @@ public class DishController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     /**
      * 新增菜品
      * @param dishDto
@@ -48,6 +54,14 @@ public class DishController {
         log.info(dishDto.toString());
 
         dishService.saveWithFlavor(dishDto);
+
+        //清理所有类别菜品
+        /*Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);*/
+
+        //清理某个类别下的菜品
+        String key = "dish_" + dishDto.getCategoryId() + "_1"; //因为前端提交过来的都是状态为1
+        redisTemplate.delete(key);
 
         return R.success("新增菜品成功");
     }
@@ -154,6 +168,14 @@ public class DishController {
 
         dishService.updateWithFlavor(dishDto);
 
+        //清理所有类别菜品
+        /*Set keys = redisTemplate.keys("dish_*");
+        redisTemplate.delete(keys);*/
+
+        //为了保证数据库中的数据和缓存中的数据一致：清理某个类别下的菜品
+        String key = "dish_" + dishDto.getCategoryId() + "_1";
+        redisTemplate.delete(key);
+
         return R.success("修改菜品成功");
     }
 
@@ -182,9 +204,26 @@ public class DishController {
         return R.success(list);
     }*/
 
-    //移动端菜品点击加号需要显示口味信息，而不只是菜品基本信息
+
+    //新增套餐时需要选定一些菜品，根据条件查询对应的菜品数据（套餐）
+    //请求地址：http://localhost:8080/dish/list?categoryId=1397849739276890114
+    //优化：同时移动端菜品点击加号需要显示口味信息，而不只是菜品基本信息
     @GetMapping("/list")
     public R<List<DishDto>> list(Dish dish){
+
+        //动态构造一个key
+        List<DishDto> dishDtoList = null;
+        String key = "dish_" + dish.getCategoryId() + "_" + dish.getStatus();//dish_1397849739276890114_1
+
+        //优化：1.1先从Redis获取缓存数据（按照湘菜川菜每个类别id和状态即上面的key进行分类获取）
+        dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+
+        //1.2如果存在，直接返回，无需查询数据库
+        if (dishDtoList != null){
+            return R.success(dishDtoList);
+        }
+
+
         //构造查询条件
         LambdaQueryWrapper<Dish> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(dish.getCategoryId() != null ,Dish::getCategoryId,dish.getCategoryId());
@@ -196,7 +235,7 @@ public class DishController {
 
         List<Dish> list = dishService.list(queryWrapper);
 
-        List<DishDto> dishDtoList = list.stream().map((item) -> {
+        dishDtoList = list.stream().map((item) -> {
             DishDto dishDto = new DishDto();
 
             BeanUtils.copyProperties(item,dishDto);
@@ -223,6 +262,9 @@ public class DishController {
             dishDto.setFlavors(dishFlavorList);
             return dishDto;
         }).collect(Collectors.toList());
+
+        //1.3如果不存在，需要查询数据库，将查询到的菜品缓存到Redis
+        redisTemplate.opsForValue().set(key, dishDtoList, 60, TimeUnit.MINUTES);
 
         return R.success(dishDtoList);
     }

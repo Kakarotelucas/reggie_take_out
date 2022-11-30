@@ -8,7 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
- * 为了便于观察key，可设置可不设置
+ * 设置RedisTemplate配置序列和反序列化。为了便于观察key，可设置可不设置
  */
 @Configuration
 public class RedisConfig extends CachingConfigurerSupport {
