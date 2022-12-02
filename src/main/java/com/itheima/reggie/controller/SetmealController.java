@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +49,10 @@ public class SetmealController {
      * @return 请求：是一大串各个菜品的合集
      */
     @PostMapping//@RequestBody主要用来接收前端传递给后端的json字符串中的数据的(请求体中的数据的)；而最常用的使用请求体传参的无疑是POST请求了，所以使用@RequestBody接收数据时，一般都用POST方式进行提交
+
+    //CacheEvict：清理指定缓存
+    //value：缓存的名称，每个缓存名称下面可以有多个key
+    @CacheEvict(value = "setmealCache", allEntries = true) //allEntries = true表示删除setmealCache下的所有数据
     public R<String> save(@RequestBody SetmealDto setmealDto){
 
         log.info("套餐信息：{}", setmealDto);
@@ -125,6 +131,10 @@ public class SetmealController {
      * @return 请求网址：http://localhost:8080/setmeal?ids=1415580119015145474,1594248889081393154
      */
     @DeleteMapping
+
+    //CacheEvict：清理指定缓存
+    //value：缓存的名称，每个缓存名称下面可以有多个key
+    @CacheEvict(value = "setmealCache", allEntries = true) //allEntries = true表示删除setmealCache下的所有数据
     //@RequestParam用于将指定参数赋值给方法中的形参。意思就是标注浏览器地址栏参数名称
     public R<String> delete(@RequestParam List<Long> ids){
         log.info("ids:{}",ids);
@@ -135,11 +145,16 @@ public class SetmealController {
     }
 
     /**
-     *移动端点击套餐显示套餐功能
+     * 移动端点击套餐显示套餐功能
      * @param setmeal
      * @return http://localhost:8080/setmeal/list?categoryId=1413342269393674242&status=1,不是JSON数据，不用加RequestBody
      */
     @GetMapping("/list")
+
+    //Cacheable：在方法执行前spring先查看缓存中是否有数据，如果有数据，则直接返回缓存数据；若没有数据，调用方法并将方法返回值放到缓存中
+    //value：缓存的名称，每个缓存名称下面可以有多个key
+    //key：缓存的key
+    @Cacheable(value = "setmealCache", key = "#setmeal.categoryId + '_' + #setmeal.status")
     public R<List<Setmeal>> list(Setmeal setmeal) {
         log.info("setmeal:{}", setmeal);
         //条件构造器

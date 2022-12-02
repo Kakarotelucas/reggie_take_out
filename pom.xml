@@ -85,12 +85,13 @@
             <version>2.1.0</version>
         </dependency>
 
-        <!--Redis-->
+        <!--在SpringBoot项目中(使用redis缓存技术)-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!--Spring_Cache框架-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
