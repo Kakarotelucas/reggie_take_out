@@ -91,11 +91,19 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!--Spring_Cache框架-->
+        <!--Spring_Cache框架(便于使用redis缓存技术)-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
+
+        <!--sharding_JDBC框架，便于主从复制-->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+            <version>4.0.0-RC1</version>
+        </dependency>
+
 
     </dependencies>
 
